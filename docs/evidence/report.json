@@ -1,0 +1,27 @@
+{
+  "contract": "../design.md — outil de scan mobile en français, correction humaine, carnet local et export vCard. Vérifications sur contacts et carte fictifs ; aucun téléphone physique testé.",
+  "targetViewports": ["390x844", "1440x900"],
+  "accessibility": {
+    "status": "pass",
+    "evidence": "Lighthouse mobile : accessibilité 100/100 (lighthouse.json). Navigation au clavier vers le lien d'évitement, focus visible, labels des champs, ouverture et fermeture du dialogue par Échap vérifiés dans Playwright. Actions principales d'au moins 44 px. Les animations et transitions sont désactivées par la règle prefers-reduced-motion. Cela ne constitue pas un audit d'accessibilité exhaustif."
+  },
+  "responsive": {
+    "status": "pass",
+    "evidence": "Captures relues à 390x844 et 1440x900 : scan lisible, actions disponibles, liste avec une fonction longue sans débordement. Test scrollWidth <= innerWidth dans les deux formats et sur le dialogue mobile. Les champs longs de la fiche utilisent toute la largeur mobile."
+  },
+  "contentStates": {
+    "loading": { "status": "pass", "evidence": "OCR réel sur une carte fictive : progression visible puis disparition du chargement ; annulation testée après capture simulée. Capture ocr-loading.png." },
+    "empty": { "status": "pass", "evidence": "Carnet vide avec invitation à scanner et export désactivé, sur ordinateur et mobile. Captures empty-1440.png et empty-390.png." },
+    "error": { "status": "pass", "evidence": "Tests d'IndexedDB indisponible avec export possible, d'échec d'effacement avec contact conservé et de téléchargement OCR interrompu avec saisie manuelle disponible. Capture storage-error.png." },
+    "partial": { "status": "pass", "evidence": "Une fiche comportant seulement un prénom peut être reprise après rechargement ; champs manquants laissés modifiables. Aucun contact entièrement vide accepté. Photo et texte reconnu conservés pour vérification ; capture editor-mobile.png." },
+    "success": { "status": "pass", "evidence": "Ajout, modification et persistance après rechargement testés. Sélection d'un seul contact exportée dans un vrai fichier contenant uniquement sa vCard. Captures contacts-1440.png et contacts-390.png." },
+    "permission": { "status": "pass", "evidence": "Demande caméra uniquement au clic. Refus simulé : message explicite et import photo disponible (camera-denied.png). Caméra simulée : pistes arrêtées après fermeture et capture. L'autorisation matérielle et le cadrage sur téléphone restent à vérifier."
+    }
+  },
+  "renderedEvidence": [
+    { "viewport": "390x844", "artifact": "empty-390.png", "observation": "Capture mobile : titre, carte illustrative, scan, import et saisie manuelle lisibles. Le carnet suit dans le défilement vertical." },
+    { "viewport": "1440x900", "artifact": "empty-1440.png", "observation": "Capture ordinateur : scan et carnet en deux colonnes ; état vide et export désactivé." },
+    { "viewport": "390x844", "artifact": "editor-mobile.png", "observation": "Dialogue avec photo de la carte fictive, champs corrigibles et validation accessible dans le pied de dialogue." },
+    { "viewport": "1440x900", "artifact": "contacts-1440.png", "observation": "Deux contacts fictifs, fonction longue, sélection d'une fiche et export ciblé." }
+  ]
+}

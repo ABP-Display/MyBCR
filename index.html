@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#173e35" />
+    <meta name="description" content="Transformez vos cartes de visite en contacts. Scanner gratuit et open source, sans compte. Traitement et sauvegarde dans votre navigateur." />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>MiniBCR — Vos cartes, vos contacts.</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Aller au contenu</a>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="MiniBCR, accueil"><span class="brand-icon" aria-hidden="true"><i></i></span>Mini<span>BCR</span><span class="version">BÊTA</span></a>
+      <button id="privacy-button" class="privacy-link"><span class="status-dot" aria-hidden="true"></span> Vos données restent ici <span aria-hidden="true">↗</span></button>
+    </header>
+
+    <main id="main" class="workspace">
+      <section class="scan-column" aria-labelledby="scan-title">
+        <div class="eyebrow"><span class="tiny-line"></span> DE LA RENCONTRE AU CONTACT</div>
+        <h1 id="scan-title">Une carte.<br />Un nouveau <em>contact.</em></h1>
+        <p class="intro">Scannez, vérifiez, emportez. Votre prochain contact<br class="desktop-break" /> commence avec une carte de visite.</p>
+
+        <div class="scanner" id="scanner">
+          <div class="scanner-top"><span><span class="status-dot" aria-hidden="true"></span> PRÊT À SCANNER</span><span>01 — CAPTURE</span></div>
+          <div class="capture-stage" id="capture-stage">
+            <div class="card-scene" id="card-scene" aria-hidden="true">
+              <div class="scan-corners"><i></i><i></i><i></i><i></i></div>
+              <div class="sample-card"><div class="sample-symbol">m<span>↗</span></div><div class="sample-name">Camille Martin</div><div class="sample-role">Design & idées nouvelles</div><div class="sample-lines"><span></span><span></span></div><div class="sample-footer">BONJOUR@EXEMPLE.FR <span>↗</span></div></div>
+              <span class="sample-caption">VOTRE PROCHAINE RENCONTRE</span>
+            </div>
+            <div id="camera-view" hidden><video id="camera-video" autoplay muted playsinline aria-label="Aperçu de la caméra"></video><div class="camera-guide" aria-hidden="true"></div><p>Placez la carte au centre, bien éclairée.</p></div>
+          </div>
+          <div class="scan-actions" id="scan-actions">
+            <button class="button button-primary" id="camera-button"><span data-icon="camera"></span> Scanner une carte <span class="button-arrow" aria-hidden="true">↗</span></button>
+            <button class="button button-secondary" id="upload-button"><span data-icon="upload"></span> Importer une photo</button>
+          </div>
+          <div class="scan-actions" id="camera-actions" hidden>
+            <button class="button button-primary" id="capture-button"><span data-icon="camera"></span> Prendre la photo</button>
+            <button class="button button-secondary" id="stop-camera-button">Fermer la caméra</button>
+          </div>
+          <input id="image-input" type="file" accept="image/jpeg,image/png,image/webp,image/bmp" hidden />
+          <p class="capture-hint" id="capture-hint">Caméra arrière recommandée · JPG, PNG, WebP ou BMP</p>
+          <p class="inline-error" id="camera-error" role="alert" hidden></p>
+        </div>
+
+        <div class="scan-bottom"><p><span data-icon="lock"></span> Analyse sur votre appareil</p><button id="manual-button" class="text-button">Saisir un contact <span aria-hidden="true">→</span></button></div>
+        <button id="resume-draft" class="draft-banner" hidden><span data-icon="edit"></span><span>Un brouillon vous attend<strong>Reprendre la fiche en cours</strong></span><span aria-hidden="true">→</span></button>
+        <div class="workflow" aria-label="Les étapes"><span><b>01</b> Capturer</span><i aria-hidden="true">—</i><span><b>02</b> Vérifier</span><i aria-hidden="true">—</i><span><b>03</b> Exporter</span></div>
+      </section>
+
+      <section class="contacts-column" aria-labelledby="contacts-title">
+        <div class="contacts-heading"><div><div class="eyebrow">VOTRE CARNET</div><h2 id="contacts-title">Les contacts <span id="contact-count" class="count">0</span></h2></div><span class="local-tag"><span class="status-dot" aria-hidden="true"></span> Local</span></div>
+        <p class="storage-caption" id="storage-caption"><span data-icon="check"></span> Sauvegarde automatique dans ce navigateur</p>
+        <div class="storage-warning" id="storage-warning" role="alert" hidden>La sauvegarde locale est indisponible. Vos contacts restent utilisables dans cet onglet : exportez-les avant de quitter.</div>
+        <label class="search"><span data-icon="search"></span><span class="sr-only">Rechercher un contact</span><input id="search-input" type="search" placeholder="Un nom, une entreprise, un e-mail…" /></label>
+        <div class="list-toolbar" id="list-toolbar" hidden><label class="checkbox-label"><input id="select-all" type="checkbox" /> <span id="selection-label">Tout sélectionner</span></label><span id="visible-count"></span></div>
+        <div id="contact-list" class="contact-list"></div>
+        <div id="empty-state" class="empty-state"><div class="empty-art" aria-hidden="true"><div class="empty-art-back"></div><div class="empty-art-front"><span data-icon="contact"></span><i></i><i></i></div><span class="empty-plus">+</span></div><h3>Les belles rencontres<br />méritent de rester.</h3><p>Votre première carte scannée apparaîtra ici.<br />À vous de faire les présentations.</p><span class="empty-direction" aria-hidden="true">↖</span></div>
+        <div id="no-results" class="no-results" hidden>Aucun contact ne correspond à cette recherche.</div>
+        <div class="export-area"><button id="export-button" class="button button-export" disabled><span data-icon="download"></span><span id="export-label">Exporter les contacts</span><span class="file-tag">.VCF</span></button><p>Un fichier à importer dans l’application Contacts.</p><button id="clear-button" class="text-button danger" hidden><span data-icon="trash"></span> Effacer mes données locales</button></div>
+      </section>
+    </main>
+
+    <footer class="site-footer"><span>Petit outil. Vraies connexions.</span><span>Sans compte. Sans envoi de vos cartes. <a class="footer-open" href="https://git.oriatec.fr/anthony/MiniBCR" target="_blank" rel="noopener noreferrer">Open source ↗</a></span></footer>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    <dialog id="editor-dialog" class="editor-dialog" aria-labelledby="editor-title">
+      <div class="dialog-header"><div><div class="eyebrow">02 — VÉRIFICATION</div><h2 id="editor-title">Faisons les présentations.</h2></div><button id="close-editor" class="icon-button" aria-label="Fermer et garder le brouillon"><span data-icon="close"></span></button></div>
+      <div id="ocr-progress" class="ocr-progress" hidden><div><span class="spinner" aria-hidden="true"></span><span id="ocr-status">Préparation de l’analyse…</span><button id="cancel-ocr" class="text-button">Annuler l’analyse</button></div><progress id="progress-bar" max="100" value="0" aria-label="Progression de la reconnaissance"></progress><p>La première analyse télécharge le moteur. Votre photo reste sur cet appareil.</p></div>
+      <p class="editor-notice" id="editor-notice">Vérifiez les informations avant d’ajouter le contact.</p>
+      <form id="contact-form">
+        <div class="editor-body"><aside id="image-aside" hidden><img id="card-preview" alt="Carte de visite à vérifier" /><button id="rotate-button" class="text-button"><span data-icon="rotate"></span> Pivoter la photo</button><button id="reanalyze-button" class="text-button">Relancer l’analyse</button><details><summary>Texte reconnu</summary><pre id="raw-text"></pre></details></aside>
+          <fieldset id="contact-fields" class="form-fields"><legend class="sr-only">Informations du contact</legend>
+            <label>Prénom<input name="firstName" autocomplete="given-name" maxlength="150" /></label><label>Nom<input name="lastName" autocomplete="family-name" maxlength="150" /></label>
+            <label>Organisation<input name="organization" autocomplete="organization" maxlength="200" /></label><label>Fonction<input name="title" autocomplete="organization-title" maxlength="200" /></label>
+            <label>Téléphone(s)<textarea name="phones" rows="2" inputmode="tel" placeholder="Un numéro par ligne" maxlength="1000"></textarea></label><label>E-mail(s)<textarea name="emails" rows="2" inputmode="email" placeholder="Une adresse par ligne" maxlength="1000"></textarea></label>
+            <label class="full-width">Site web<input name="website" inputmode="url" placeholder="www.exemple.fr" maxlength="1000" /></label><label class="full-width">Adresse<textarea name="address" rows="2" autocomplete="street-address" maxlength="2000"></textarea></label>
+            <label class="full-width">Notes <span class="optional">facultatif</span><textarea name="notes" rows="2" maxlength="3000"></textarea></label>
+          </fieldset>
+        </div>
+        <div class="dialog-footer"><span id="draft-status" role="status">Brouillon sauvegardé automatiquement</span><button id="discard-draft" class="text-button danger" type="button">Abandonner</button><button id="save-contact" class="button button-primary" type="submit"><span data-icon="check"></span> Ajouter au carnet</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="privacy-dialog" class="privacy-dialog" aria-labelledby="privacy-title"><div class="dialog-header"><h2 id="privacy-title">Votre carnet reste chez vous.</h2><button id="close-privacy" class="icon-button" aria-label="Fermer"><span data-icon="close"></span></button></div><div class="privacy-body"><span class="privacy-symbol" data-icon="lock"></span><p>La reconnaissance du texte s’effectue dans votre navigateur. MiniBCR n’envoie ni vos photos ni vos contacts à un serveur de traitement.</p><p>Les contacts et le brouillon sont enregistrés dans le stockage local de ce navigateur, sur cet appareil. Ils restent disponibles après un rechargement.</p><p>Effacer les données du site, utiliser la navigation privée ou changer d’appareil peut vous faire perdre ce carnet. <strong>Exportez régulièrement vos contacts.</strong></p><p>Le fichier <strong>.vcf</strong> s’importe dans votre application Contacts. L’ouverture directe dépend de votre téléphone et de votre navigateur ; l’ajout doit être confirmé dans l’application.</p><p>Le site et les fichiers du moteur sont téléchargés depuis l’hébergeur. Aucune mesure d’audience ni police distante n’est intégrée.</p></div></dialog>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
