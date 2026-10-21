@@ -1,4 +1,4 @@
-# MiniBCR
+# MyBCR
 
 Un scanner de cartes de visite open source, en français, entièrement exécuté
 dans le navigateur. Site statique compatible avec GitHub Pages, sans compte,
@@ -40,7 +40,7 @@ npm run preview
 ```
 
 Le dossier `dist/` est autonome et peut être servi par tout hébergeur statique.
-Les chemins relatifs fonctionnent également sous `/MiniBCR/`.
+Les chemins relatifs fonctionnent également sous `/MyBCR/`.
 
 ## GitHub Pages
 
@@ -89,6 +89,6 @@ la qualité des prises de vue et l'import dans les applications natives.
 
 ## Licence
 
-MIT pour MiniBCR. Tesseract.js, son moteur et les données de langue conservent
+MIT pour MyBCR. Tesseract.js, son moteur et les données de langue conservent
 leurs licences respectives ; les notices disponibles dans les paquets sont copiées
 dans `ocr/` lors de la construction.
