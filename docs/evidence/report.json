@@ -1,13 +1,13 @@
 {
   "contract": "../design.md — outil de scan mobile en français, correction humaine, carnet local et export vCard. Vérifications sur contacts et carte fictifs ; aucun téléphone physique testé.",
-  "targetViewports": ["390x844", "1440x900"],
+  "targetViewports": ["390x844", "1440x900", "844x390"],
   "accessibility": {
     "status": "pass",
-    "evidence": "Lighthouse mobile : accessibilité 100/100 (lighthouse.json). Navigation au clavier vers le lien d'évitement, focus visible, labels des champs, ouverture et fermeture du dialogue par Échap vérifiés dans Playwright. Actions principales d'au moins 44 px. Les animations et transitions sont désactivées par la règle prefers-reduced-motion. Cela ne constitue pas un audit d'accessibilité exhaustif."
+    "evidence": "Audit initial Lighthouse mobile : accessibilité 100/100 (lighthouse.json). Navigation au clavier vers le lien d'évitement, focus visible, labels des champs, ouverture et fermeture du dialogue par Échap vérifiés dans Playwright. Nouveau dialogue caméra nommé, vidéo étiquetée et fermeture par Échap vérifiée. Actions principales d'au moins 44 px. Les animations et transitions sont désactivées par la règle prefers-reduced-motion. Cela ne constitue pas un audit d'accessibilité exhaustif."
   },
   "responsive": {
     "status": "pass",
-    "evidence": "Captures relues à 390x844 et 1440x900 : scan lisible, actions disponibles, liste avec une fonction longue sans débordement. Test scrollWidth <= innerWidth dans les deux formats et sur le dialogue mobile. Les champs longs de la fiche utilisent toute la largeur mobile."
+    "evidence": "Captures relues à 390x844 et 1440x900 : scan lisible, actions disponibles, liste avec une fonction longue sans débordement. Caméra aussi vérifiée à 844x390 : vidéo complète avec quatre coins colorés visibles, boutons dans la fenêtre. Test scrollWidth <= innerWidth dans les trois formats caméra et sur le dialogue mobile. Les champs longs de la fiche utilisent toute la largeur mobile."
   },
   "contentStates": {
     "loading": { "status": "pass", "evidence": "OCR réel sur une carte fictive : progression visible puis disparition du chargement ; annulation testée après capture simulée. Capture ocr-loading.png." },
@@ -22,6 +22,8 @@
     { "viewport": "390x844", "artifact": "empty-390.png", "observation": "Capture mobile : titre, carte illustrative, scan, import et saisie manuelle lisibles. Le carnet suit dans le défilement vertical." },
     { "viewport": "1440x900", "artifact": "empty-1440.png", "observation": "Capture ordinateur : scan et carnet en deux colonnes ; état vide et export désactivé." },
     { "viewport": "390x844", "artifact": "editor-mobile.png", "observation": "Dialogue avec photo de la carte fictive, champs corrigibles et validation accessible dans le pied de dialogue." },
-    { "viewport": "1440x900", "artifact": "contacts-1440.png", "observation": "Deux contacts fictifs, fonction longue, sélection d'une fiche et export ciblé." }
+    { "viewport": "1440x900", "artifact": "contacts-1440.png", "observation": "Deux contacts fictifs, fonction longue, sélection d'une fiche et export ciblé." },
+    { "viewport": "390x844", "artifact": "camera-390.png", "observation": "Caméra en portrait : image entière, repères aux quatre coins et boutons visibles, sans déformation du carnet sous le dialogue." },
+    { "viewport": "844x390", "artifact": "camera-844.png", "observation": "Caméra en paysage : flux non découpé, hauteur adaptée à la fenêtre et commandes disponibles." }
   ]
 }

@@ -29,15 +29,10 @@
               <div class="sample-card"><div class="sample-symbol">m<span>↗</span></div><div class="sample-name">Camille Martin</div><div class="sample-role">Design & idées nouvelles</div><div class="sample-lines"><span></span><span></span></div><div class="sample-footer">BONJOUR@EXEMPLE.FR <span>↗</span></div></div>
               <span class="sample-caption">VOTRE PROCHAINE RENCONTRE</span>
             </div>
-            <div id="camera-view" hidden><video id="camera-video" autoplay muted playsinline aria-label="Aperçu de la caméra"></video><div class="camera-guide" aria-hidden="true"></div><p>Placez la carte au centre, bien éclairée.</p></div>
           </div>
           <div class="scan-actions" id="scan-actions">
             <button class="button button-primary" id="camera-button"><span data-icon="camera"></span> Scanner une carte <span class="button-arrow" aria-hidden="true">↗</span></button>
             <button class="button button-secondary" id="upload-button"><span data-icon="upload"></span> Importer une photo</button>
-          </div>
-          <div class="scan-actions" id="camera-actions" hidden>
-            <button class="button button-primary" id="capture-button"><span data-icon="camera"></span> Prendre la photo</button>
-            <button class="button button-secondary" id="stop-camera-button">Fermer la caméra</button>
           </div>
           <input id="image-input" type="file" accept="image/jpeg,image/png,image/webp,image/bmp" hidden />
           <p class="capture-hint" id="capture-hint">Caméra arrière recommandée · JPG, PNG, WebP ou BMP</p>
@@ -64,6 +59,12 @@
 
     <footer class="site-footer"><span>Petit outil. Vraies connexions.</span><span>Sans compte. Sans envoi de vos cartes. <a class="footer-open" href="https://git.oriatec.fr/anthony/MiniBCR" target="_blank" rel="noopener noreferrer">Open source ↗</a></span></footer>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    <dialog id="camera-dialog" class="camera-dialog" aria-labelledby="camera-title">
+      <div class="camera-header"><div><div class="eyebrow">01 — CAPTURE</div><h2 id="camera-title">Votre carte dans le cadre.</h2></div><span class="camera-live"><span class="status-dot" aria-hidden="true"></span> Caméra</span></div>
+      <div id="camera-view"><video id="camera-video" autoplay muted playsinline aria-label="Aperçu complet de la caméra"></video><div class="camera-guide" aria-hidden="true"></div></div>
+      <div class="camera-footer"><p id="camera-status" role="status">Autorisez la caméra dans la demande du navigateur.</p><div class="scan-actions" id="camera-actions"><button class="button button-primary" id="capture-button"><span data-icon="camera"></span> Prendre la photo</button><button class="button button-secondary" id="stop-camera-button">Fermer la caméra</button></div><p class="camera-advice">Rapprochez la carte, gardez ses quatre coins visibles et évitez les reflets.</p></div>
+    </dialog>
 
     <dialog id="editor-dialog" class="editor-dialog" aria-labelledby="editor-title">
       <div class="dialog-header"><div><div class="eyebrow">02 — VÉRIFICATION</div><h2 id="editor-title">Faisons les présentations.</h2></div><button id="close-editor" class="icon-button" aria-label="Fermer et garder le brouillon"><span data-icon="close"></span></button></div>

@@ -104,6 +104,12 @@ test('real local OCR on a fictional card with no external requests', async ({ pa
   await expect(page.getByLabel('Prénom', { exact: true })).toHaveValue('Camille');
   await expect(page.getByLabel('Organisation', { exact: true })).toHaveValue('Studio Horizon SAS');
   await expect(page.getByLabel('Téléphone(s)', { exact: true })).toHaveValue('+33 6 12 34 56 78');
+  await page.getByLabel('Organisation', { exact: true }).fill('Organisation corrigée à la main');
+  await page.getByLabel('Fonction', { exact: true }).fill('');
+  await page.getByRole('button', { name: 'Relancer l’analyse' }).click();
+  await expect(page.locator('#ocr-progress')).not.toBeVisible({ timeout: 60000 });
+  await expect(page.getByLabel('Organisation', { exact: true })).toHaveValue('Organisation corrigée à la main');
+  await expect(page.getByLabel('Fonction', { exact: true })).toHaveValue('');
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'docs/evidence/editor-mobile.png' });
@@ -132,6 +138,10 @@ test('camera preview is released on close and after capture', async ({ page }) =
     navigator.mediaDevices.getUserMedia = async () => {
       const canvas = document.createElement('canvas'); canvas.width = 800; canvas.height = 500;
       const context = canvas.getContext('2d'); context.fillStyle = '#fff'; context.fillRect(0, 0, 800, 500);
+      for (const [x, y, color] of [[0, 0, '#e04040'], [720, 0, '#42a660'], [0, 420, '#4488dd'], [720, 420, '#e1c044']]) {
+        context.fillStyle = color; context.fillRect(x, y, 80, 80);
+      }
+      context.fillStyle = '#173e35'; context.font = '36px Arial'; context.fillText('Image complète de la caméra', 110, 250);
       const stream = canvas.captureStream(1);
       window.testStream = stream;
       return stream;
@@ -140,7 +150,25 @@ test('camera preview is released on close and after capture', async ({ page }) =
   await page.goto('./');
   await page.getByRole('button', { name: 'Scanner une carte' }).click();
   await expect(page.getByRole('button', { name: 'Prendre la photo' })).toBeEnabled();
+  for (const [width, height] of [[390, 844], [844, 390], [1440, 900]]) {
+    await page.setViewportSize({ width, height });
+    const bounds = await page.locator('#camera-dialog').boundingBox();
+    expect(bounds.width).toBe(width);
+    expect(bounds.height).toBe(height);
+    await expect(page.locator('#camera-video')).toHaveCSS('object-fit', 'contain');
+    const video = await page.locator('#camera-video').boundingBox();
+    const capture = await page.locator('#capture-button').boundingBox();
+    expect(video.height).toBeGreaterThan(height * .45);
+    expect(capture.y + capture.height).toBeLessThanOrEqual(height);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `docs/evidence/camera-${width}.png` });
+  }
   await page.getByRole('button', { name: 'Fermer la caméra' }).click();
+  expect(await page.evaluate(() => window.testStream.getTracks().every(track => track.readyState === 'ended'))).toBe(true);
+  await expect(page.locator('#camera-dialog')).not.toBeVisible();
+  await page.getByRole('button', { name: 'Scanner une carte' }).click();
+  await expect(page.getByRole('button', { name: 'Prendre la photo' })).toBeEnabled();
+  await page.keyboard.press('Escape');
   expect(await page.evaluate(() => window.testStream.getTracks().every(track => track.readyState === 'ended'))).toBe(true);
   await page.getByRole('button', { name: 'Scanner une carte' }).click();
   await page.getByRole('button', { name: 'Prendre la photo' }).click();

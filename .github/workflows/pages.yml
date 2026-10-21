@@ -1,4 +1,4 @@
-name: Deploy MyBCR to GitHub Pages
+name: Deploy MiniBCR to GitHub Pages
 
 on:
   push:

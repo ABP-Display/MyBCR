@@ -1,6 +1,7 @@
 import './styles.css';
-import { blankContact, fields, contactName, extractContact, toVCard } from './contacts.js';
+import { blankContact, fields, contactName, toVCard } from './contacts.js';
 import * as storage from './storage.js';
+import { resizeImage, recognizeCard } from './recognition.js';
 
 const icons = {
   camera: '<path d="M14 4h-4L8 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-4z"/><circle cx="12" cy="13" r="4"/>',
@@ -144,35 +145,36 @@ function stopCamera() {
   state.stream?.getTracks().forEach(track => track.stop());
   state.stream = null;
   $('camera-video').srcObject = null;
-  $('camera-view').hidden = true;
-  $('camera-actions').hidden = true;
-  $('card-scene').hidden = false;
-  $('scan-actions').hidden = false;
+  $('camera-dialog').close();
   $('capture-hint').textContent = 'Caméra arrière recommandée · JPG, PNG, WebP ou BMP';
 }
 
 async function startCamera() {
+  if ($('camera-dialog').open) return;
   $('camera-error').hidden = true;
   if (!navigator.mediaDevices?.getUserMedia) {
     cameraError('La caméra est indisponible ici. Utilisez un navigateur récent en HTTPS ou importez une photo.');
     return;
   }
   const token = ++state.cameraToken;
-  $('camera-actions').hidden = false;
-  $('camera-view').hidden = false;
-  $('card-scene').hidden = true;
-  $('scan-actions').hidden = true;
+  $('camera-dialog').showModal();
   $('capture-button').disabled = true;
-  $('capture-hint').textContent = 'Autorisez la caméra dans la demande du navigateur.';
+  $('camera-status').textContent = 'Autorisez la caméra dans la demande du navigateur.';
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } } });
     if (token !== state.cameraToken) { stream.getTracks().forEach(track => track.stop()); return; }
     state.stream = stream;
+    const track = stream.getVideoTracks()[0];
+    const capabilities = track.getCapabilities?.();
+    if (capabilities?.focusMode?.includes('continuous')) {
+      // Unsupported camera controls must not prevent the preview from opening.
+      track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(() => {});
+    }
     $('camera-video').srcObject = stream;
     await $('camera-video').play();
     if (token !== state.cameraToken) return;
     $('capture-button').disabled = false;
-    $('capture-hint').textContent = 'Gardez l’appareil stable et évitez les reflets.';
+    $('camera-status').textContent = 'L’image entière de la caméra est affichée. Gardez l’appareil stable.';
     $('capture-button').focus();
   } catch (error) {
     if (token !== state.cameraToken) return;
@@ -189,30 +191,6 @@ async function startCamera() {
 function cameraError(message) {
   $('camera-error').textContent = message;
   $('camera-error').hidden = false;
-}
-
-async function loadImage(source) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error('Cette image ne peut pas être lue. Choisissez un fichier JPG, PNG, WebP ou BMP.'));
-    image.src = source;
-  });
-}
-
-async function resizeImage(source, rotate = false) {
-  const image = await loadImage(source);
-  const scale = Math.min(1, 2000 / Math.max(image.naturalWidth, image.naturalHeight));
-  const width = Math.round(image.naturalWidth * scale), height = Math.round(image.naturalHeight * scale);
-  const canvas = document.createElement('canvas');
-  canvas.width = rotate ? height : width;
-  canvas.height = rotate ? width : height;
-  const context = canvas.getContext('2d');
-  context.fillStyle = '#ffffff';
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  if (rotate) { context.translate(canvas.width, 0); context.rotate(Math.PI / 2); }
-  context.drawImage(image, 0, 0, width, height);
-  return canvas.toDataURL('image/jpeg', .9);
 }
 
 async function scanImage(image) {
@@ -233,6 +211,7 @@ async function analyzeImage() {
   syncDraft();
   const image = state.draft.image;
   let worker, cancelled = false, rejectCancel;
+  let phase = { label: 'Préparation du moteur sur votre appareil…', start: 0, end: 25 };
   const cancellation = new Promise((_, reject) => { rejectCancel = reject; });
   const job = { cancel() { cancelled = true; rejectCancel(new Error('cancelled')); worker?.terminate(); } };
   state.ocr = job;
@@ -242,7 +221,7 @@ async function analyzeImage() {
   const timeout = setTimeout(() => job.cancel(), 120000);
   try {
     const operation = (async () => {
-      const { createWorker, PSM } = await import('tesseract.js');
+      const { createWorker } = await import('tesseract.js');
       if (cancelled) return;
       const root = new URL(`${import.meta.env.BASE_URL}ocr/`, document.baseURI).href;
       worker = await createWorker(['fra', 'eng'], 1, {
@@ -251,24 +230,33 @@ async function analyzeImage() {
         logger(message) {
           if (state.ocr !== job || cancelled) return;
           const recognizing = message.status === 'recognizing text';
-          $('ocr-status').textContent = recognizing ? 'Lecture de votre carte…' : 'Préparation du moteur sur votre appareil…';
-          $('progress-bar').value = recognizing ? 30 + Math.round(message.progress * 70) : Math.round((message.progress || 0) * 25);
+          $('ocr-status').textContent = phase.label;
+          $('progress-bar').value = recognizing ? phase.start + Math.round((message.progress || 0) * (phase.end - phase.start)) : phase.start;
         },
       });
       if (cancelled) { await worker.terminate(); return; }
-      await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT, user_defined_dpi: '300' });
-      return worker.recognize(image);
+      return recognizeCard(worker, image, (label, start, end) => {
+        phase = { label, start, end };
+        if (!cancelled && state.ocr === job) { $('ocr-status').textContent = label; $('progress-bar').value = start; }
+      }, () => cancelled);
     })();
     const result = await Promise.race([operation, cancellation]);
     if (cancelled || state.ocr !== job || !state.draft || !result) return;
-    const text = result.data.text.trim();
+    const text = result.text;
     state.draft.rawText = text;
-    // Keep existing corrections if the user reruns recognition after rotating.
-    const extracted = extractContact(text);
-    for (const field of fields) if (!state.draft[field]) state.draft[field] = extracted[field];
+    const extracted = result.extracted;
+    // Replace previous automatic suggestions, but preserve human corrections.
+    for (const field of fields) {
+      if (state.draft.manuallyEditedFields?.includes(field)) continue;
+      if (!state.draft[field] || state.draft[field] === state.draft.suggestedFields?.[field]) state.draft[field] = extracted[field];
+    }
+    state.draft.suggestedFields = extracted;
+    if (result.rotation) { state.draft.image = await resizeImage(image, result.rotation); $('card-preview').src = state.draft.image; }
     writeForm(state.draft);
     $('raw-text').textContent = text || 'Aucun texte détecté.';
-    $('editor-notice').textContent = text ? 'Lecture terminée. Vérifiez les champs proposés et complétez les informations manquantes.' : 'Aucun texte lisible détecté. Essayez une photo plus nette ou complétez la fiche à la main.';
+    $('editor-notice').textContent = !text ? 'Aucun texte lisible détecté. Essayez une photo plus nette ou complétez la fiche à la main.'
+      : result.confidence < 75 ? 'Lecture incertaine : vérifiez chaque champ avec la photo, notamment les lettres, chiffres et coordonnées.'
+        : 'Plusieurs lectures ont été comparées. Vérifiez les champs proposés et complétez les informations manquantes.';
     await queueDraft();
   } catch (error) {
     if (error.message !== 'cancelled' && state.ocr === job) {
@@ -299,14 +287,15 @@ function downloadContacts(contacts) {
 
 $('camera-button').addEventListener('click', startCamera);
 $('stop-camera-button').addEventListener('click', stopCamera);
+$('camera-dialog').addEventListener('cancel', event => { event.preventDefault(); stopCamera(); });
 $('capture-button').addEventListener('click', async () => {
   const video = $('camera-video');
   if (!video.videoWidth || !replaceDraftAllowed()) return;
   const canvas = document.createElement('canvas');
-  const scale = Math.min(1, 2000 / Math.max(video.videoWidth, video.videoHeight));
+  const scale = Math.min(1, 3200 / Math.max(video.videoWidth, video.videoHeight));
   canvas.width = Math.round(video.videoWidth * scale); canvas.height = Math.round(video.videoHeight * scale);
   canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-  const image = canvas.toDataURL('image/jpeg', .9);
+  const image = canvas.toDataURL('image/jpeg', .95);
   stopCamera();
   await scanImage(image);
 });
@@ -334,13 +323,16 @@ $('rotate-button').addEventListener('click', async event => {
   event.preventDefault();
   if (!state.draft?.image || state.ocr) return;
   $('rotate-button').disabled = true;
-  try { state.draft.image = await resizeImage(state.draft.image, true); $('card-preview').src = state.draft.image; queueDraft(); }
+  try { state.draft.image = await resizeImage(state.draft.image, 90); $('card-preview').src = state.draft.image; queueDraft(); }
   catch { notify('Impossible de pivoter cette image.'); }
   finally { $('rotate-button').disabled = false; }
 });
 $('reanalyze-button').addEventListener('click', event => { event.preventDefault(); analyzeImage(); });
-form.addEventListener('input', () => {
+form.addEventListener('input', event => {
   syncDraft();
+  if (state.draft && fields.includes(event.target.name)) {
+    state.draft.manuallyEditedFields = [...new Set([...(state.draft.manuallyEditedFields || []), event.target.name])];
+  }
   $('draft-status').textContent = state.temporary ? 'Brouillon en mémoire uniquement' : 'Sauvegarde…';
   clearTimeout(draftTimer);
   draftTimer = setTimeout(queueDraft, 250);

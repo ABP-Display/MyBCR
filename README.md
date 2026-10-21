@@ -1,4 +1,4 @@
-# MyBCR
+# MiniBCR
 
 Un scanner de cartes de visite open source, en français, entièrement exécuté
 dans le navigateur. Site statique compatible avec GitHub Pages, sans compte,
@@ -6,12 +6,21 @@ sans API de traitement ni clé secrète.
 
 ## Fonctionnalités
 
-- Capture avec la caméra de l'appareil, après autorisation, ou import d'une photo.
+- Capture avec la caméra de l'appareil, après autorisation, dans une vue occupant
+  l'écran avec l'image entière (sans recadrage), ou import d'une photo.
 - Reconnaissance locale du texte français/anglais avec Tesseract.js / WebAssembly.
+- Deux lectures comparées : image originale et image agrandie avec contraste
+  normalisé, niveaux de gris et inversion des cartes sombres. Redressement des
+  lignes par Tesseract, segmentation adaptée aux cartes et aux blocs de texte.
+  Recherche du sens de lecture à 90°, 180° et 270° si la lecture est insuffisante.
 - Suggestions de prénom, nom, organisation, fonction, téléphones, e-mails, site
   et adresse. **Vérification humaine nécessaire** : l'OCR et les heuristiques
   peuvent se tromper, particulièrement sur les noms, logos et mises en page complexes.
 - Photo et texte original visibles pendant la correction, rotation et nouvelle analyse.
+- Coordonnées tolérant les espaces parasites autour des points, du `@` et du
+  protocole d'un site ; correction `O/0`, `I/1` uniquement dans les numéros étiquetés.
+  Détection des noms aidée par la taille des lignes et les e-mails quand disponibles.
+  Une nouvelle analyse conserve les champs corrigés ou vidés à la main.
 - Carnet avec recherche, modification, sélection, suppression et alerte de doublon
   sur e-mail ou téléphone identique.
 - Export vCard 3.0 `.vcf` d'un contact, d'une sélection ou du carnet complet.
@@ -40,7 +49,7 @@ npm run preview
 ```
 
 Le dossier `dist/` est autonome et peut être servi par tout hébergeur statique.
-Les chemins relatifs fonctionnent également sous `/MyBCR/`.
+Les chemins relatifs fonctionnent également sous `/MiniBCR/`.
 
 ## GitHub Pages
 
@@ -87,8 +96,14 @@ erreurs de stockage, la caméra simulée et l'OCR réel sans connexion à un ser
 Une vérification sur de vrais téléphones iOS/Android reste nécessaire pour évaluer
 la qualité des prises de vue et l'import dans les applications natives.
 
+Les comparatifs OCR de quatre cartes fictives (claire, petits caractères peu
+contrastés, sombre et tournée à 90°) figurent dans `docs/evidence/ocr-*-comparison.json`.
+Ils comparent les mêmes modèles avec l'ancienne lecture unique et le nouveau
+pipeline. Ils ne donnent pas un taux général de précision sur des cartes réelles.
+La comparaison de plusieurs lectures augmente le temps d'analyse ; elle reste annulable.
+
 ## Licence
 
-MIT pour MyBCR. Tesseract.js, son moteur et les données de langue conservent
+MIT pour MiniBCR. Tesseract.js, son moteur et les données de langue conservent
 leurs licences respectives ; les notices disponibles dans les paquets sont copiées
 dans `ocr/` lors de la construction.

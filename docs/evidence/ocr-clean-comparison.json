@@ -1,0 +1,37 @@
+{
+  "fixture": "clean",
+  "expected": {
+    "firstName": "Élise",
+    "lastName": "BERNARD",
+    "organization": "Atelier Lumen",
+    "title": "Architecte",
+    "phones": "+33 6 12 34 56 78",
+    "emails": "elise.bernard@lumen.design",
+    "website": "www.lumen.design"
+  },
+  "baseline": {
+    "fieldsMatched": [
+      "firstName",
+      "lastName",
+      "organization",
+      "title",
+      "phones",
+      "emails",
+      "website"
+    ],
+    "text": "Élise BERNARD\n\nAtelier Lumen\n\nArchitecte\n\n+33 6 12 34 56 78\n\nelise.bernard@lumen.design\n\nwww.lumen.design\n\n12 rue des Arts\n\n75011 Paris\n"
+  },
+  "improved": {
+    "fieldsMatched": [
+      "firstName",
+      "lastName",
+      "organization",
+      "title",
+      "phones",
+      "emails",
+      "website"
+    ],
+    "text": "Élise BERNARD\n\nAtelier Lumen\n\nArchitecte\n\n+33 6 12 34 56 78\n\nelise.bernard@lumen.design\n\nwww.lumen.design\n\n12 rue des Arts\n\n75011 Paris"
+  },
+  "note": "Cartes synthétiques uniquement. Même extraction actuelle sur le texte ancien : la comparaison isole surtout le pipeline OCR ; aucun taux global de précision sur des cartes réelles."
+}

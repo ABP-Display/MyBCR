@@ -1,3 +1,50 @@
+.camera-dialog {
+  width:100vw;
+  max-width:none;
+  height:100dvh;
+  max-height:none;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:#101b17;
+  color:#fff;
+  overflow:hidden;
+}
+.camera-dialog[open] {
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+}
+.camera-dialog::backdrop { background:#101b17; }
+.camera-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:max(18px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) 18px max(22px,env(safe-area-inset-left));
+}
+.camera-header .eyebrow { color:#dff397; font-size:9px; }
+.camera-header h2 { font-size:20px; font-weight:500; margin:9px 0 0; }
+.camera-live { display:flex; align-items:center; gap:7px; color:#d0dccd; font-size:11px; }
+.camera-live .status-dot { background:#dff397; }
+#camera-view { position:relative; min-width:0; min-height:0; background:#080e0b; }
+#camera-video { position:absolute; inset:0; display:block; width:100%; height:100%; object-fit:contain; }
+.camera-guide { position:absolute; inset:12px; border:1px solid #dff39766; border-radius:8px; pointer-events:none; }
+.camera-footer { padding:12px 22px max(16px,env(safe-area-inset-bottom)); }
+.camera-footer>p { font-size:12px; line-height:1.6; text-align:center; margin:0 0 12px; color:#e0e9dc; }
+.camera-footer .scan-actions { max-width:560px; margin:auto; padding:0; grid-template-columns:1.15fr 1fr; }
+.camera-footer .button-primary { background:#dff397; color:#173e35; }
+.camera-footer .button-primary:hover:not(:disabled) { background:#edffb5; }
+.camera-footer .button-secondary { background:#24382e; border-color:#45604e; color:white; }
+.camera-footer>p.camera-advice { font-size:10px; color:#b0c0ad; margin:12px 0 0; }
+@media(max-height:480px) {
+  .camera-header { padding:8px 18px; }
+  .camera-header .eyebrow,.camera-footer .camera-advice { display:none; }
+  .camera-header h2 { font-size:16px; margin:0; }
+  .camera-footer { padding:8px 18px; }
+  .camera-footer>p { margin-bottom:5px; font-size:10px; }
+}
+
 dialog {
   color:#203d35;
   background:#fdfefa;

@@ -10,6 +10,12 @@ social, écran marketing ou faux contact. Deux zones sur ordinateur, flux vertic
 sur mobile. Cibles : 390x844 et 1440x900. Zones tactiles de 44 px minimum,
 focus visible, dialogues natifs et labels explicites.
 
+La caméra utilise un dialogue occupant la fenêtre, avec vidéo entière en
+`object-fit: contain`, commandes séparées et hauteur dynamique `100dvh`.
+Vérifier aussi le paysage mobile à 844x390 : les quatre coins du flux et les
+commandes doivent rester visibles. La vidéo ne doit pas agrandir ou découper
+le reste de la page. Fermeture et Échap arrêtent les pistes vidéo.
+
 États : liste vide avec action scanner ; caméra uniquement après clic et consentement ;
 chargement OCR avec progression et annulation ; erreur avec saisie manuelle ;
 extraction partielle modifiable ; succès avec contact visible et export disponible.
