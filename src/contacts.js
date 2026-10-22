@@ -108,7 +108,7 @@ export function extractContact(input, layoutLines = []) {
 }
 
 export function contactName(contact) {
-  return [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.organization || contact.emails || 'Contact sans nom';
+  return [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.organization || contact.emails || (contact.image?'Carte sans coordonnées':'Contact sans nom');
 }
 
 export function escapeVCard(value = '') {

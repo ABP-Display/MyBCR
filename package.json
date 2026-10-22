@@ -5,8 +5,8 @@
   "type": "module",
   "description": "Scanner de cartes de visite privé, entièrement dans le navigateur.",
   "scripts": {
-    "dev": "node scripts/prepare-ocr.mjs && vite --host 127.0.0.1",
-    "build": "node scripts/prepare-ocr.mjs && vite build",
+    "dev": "node scripts/prepare-pwa-assets.mjs && node scripts/prepare-ocr.mjs && vite --host 127.0.0.1",
+    "build": "node scripts/prepare-pwa-assets.mjs && node scripts/prepare-ocr.mjs && vite build && node scripts/build-pwa.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test tests/*.test.js",
     "test:e2e": "playwright test"

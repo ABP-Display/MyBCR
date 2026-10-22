@@ -2,10 +2,11 @@
 
 Le 21 octobre 2026, sur Chrome desktop automatisé, avec données fictives :
 
-- `npm test` : 10 tests réussis (extraction, ambiguïté, e-mails et sites espacés,
+- `npm test` : 14 tests réussis (extraction, ambiguïté, e-mails et sites espacés,
   téléphones français et internationaux, confusions O/0 et I/1, noms composés,
   ordre nom-prénom, adresses, échappement vCard et repli des lignes Unicode).
-- `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e` : 13 scénarios réussis.
+- `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e` : les scénarios applicatifs et la suite
+  PWA sont décrits ci-dessous.
 - Construction de production servie sous `/MiniBCR/`, comme sur GitHub Pages.
 - OCR réel français/anglais d'une carte générée : nom, entreprise, e-mail,
   téléphone extraits ; aucune requête HTTP externe observée dans ce parcours.
@@ -57,3 +58,47 @@ ainsi que l'implémentation locale de `rotateAuto` dans Tesseract.js 7.
 Restent à vérifier sur appareils physiques : consentement et autofocus de la caméra,
 performances sur téléphones modestes, Safari iOS, import des fichiers vCard dans les
 applications natives. Aucun déploiement distant n'a été effectué.
+
+## Catalogue mobile, le 22 octobre 2026
+
+- Ancienne base IndexedDB v1 avec photo migrée vers v2 sans perte de la fiche.
+- Recadrage de quatre coins déplacés par pointeur, proportions 85×55 et sortie
+  JPEG redressée. Correspondance mathématique des quatre coins vérifiée en test unitaire.
+- Conservation de pixels colorés dans la sortie ; une carte sombre n'est pas inversée
+  par la retouche destinée au catalogue. Le traitement OCR reste séparé.
+- Poignées accessibles au clavier, rotation de l'original et annulation du recadrage.
+- Photo originale, photo retouchée et paramètres retrouvés dans IndexedDB après
+  rechargement. La fiche peut aussi être conservée sans coordonnées.
+- Navigation Scanner/Catalogue/Historique, détail de fiche et chronologie locale.
+- Sauvegarde JSON téléchargée, effacement du catalogue puis restauration avec
+  photos et historique ; validation des données avant écriture.
+- Suppression d'une fiche conservant une ligne d'historique sans photo, avec lien
+  d'ouverture retiré. L'effacement global efface aussi cet historique.
+- Correction d'une course entre deux sauvegardes du brouillon : une écriture ancienne
+  ne peut plus annoncer « sauvegardé » pendant qu'une saisie récente attend son écriture.
+
+Captures synthétiques : `evidence/mobile-catalogue.png`, `mobile-photo-editor.png`
+et `mobile-history.png`. Cette livraison est une version web adaptée aux téléphones ;
+elle n'ajoute pas de paquet natif. La PWA installable a ensuite été ajoutée (voir ci-dessous). Le recadrage proposé
+par détection doit être vérifié ; les tests ne garantissent pas une détection automatique
+de tous les contours de cartes réelles.
+
+## PWA installable, le 22 octobre 2026
+
+- Manifest, mode standalone, portée et URL de démarrage vérifiés sous `/MiniBCR/`.
+- Icônes PNG 192, 512 et masque adaptatif, plus icône Apple : réponses et dimensions
+  des fichiers vérifiées ; identité visuelle relue.
+- Parcours du dialogue d'installation testé avec un événement de navigateur simulé.
+  Aide iPhone vérifiée avec un agent utilisateur simulé ; cela ne teste pas iOS réel.
+- Catalogue consultable après rechargement réseau coupé, puis OCR réel au premier
+  lancement du moteur sans connexion après préparation explicite de son pack.
+- Export vCard et persistance des fiches vérifiés dans cette session hors connexion.
+- Nouvelle version servie réellement par le serveur local de test : mise en attente,
+  bouton de confirmation, rechargement et brouillon conservé vérifiés.
+- Les autres tests applicatifs désactivent les service workers pour isoler leurs
+  simulations de réseau ; la suite `pwa.spec.js` les active et vérifie les vrais caches.
+- Pas de cache réseau des photos et contacts ; seuls les fichiers statiques sont listés.
+
+Limites : installation système sur Android/iPhone, quotas et éviction des caches sur
+appareils réels non vérifiés. Le site doit être publié en HTTPS pour une installation
+sur téléphone. L'aperçu local permet les essais sur ordinateur, sans publication.

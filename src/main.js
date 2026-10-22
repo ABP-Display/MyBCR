@@ -1,9 +1,14 @@
 import './styles.css';
+import './mobile.css';
 import { blankContact, fields, contactName, toVCard } from './contacts.js';
 import * as storage from './storage.js';
 import { resizeImage, recognizeCard } from './recognition.js';
+import { createPhotoEditor } from './photo-editor.js';
+import { eventLabels, makeEvent, safePhoto, parseCatalogueBackup } from './catalogue.js';
+import { initializePWA } from './pwa.js';
 
 const icons = {
+  history:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   camera: '<path d="M14 4h-4L8 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-4z"/><circle cx="12" cy="13" r="4"/>',
   upload: '<path d="M12 16V3m-5 5 5-5 5 5M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/>',
   download: '<path d="M12 3v13m-5-5 5 5 5-5M4 16v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/>',
@@ -21,8 +26,18 @@ document.querySelectorAll('[data-icon]').forEach(element => { element.innerHTML 
 const $ = id => document.getElementById(id);
 const form = $('contact-form');
 const editor = $('editor-dialog');
-const state = { contacts: [], selected: new Set(), draft: null, temporary: false, stream: null, cameraToken: 0, ocr: null };
-let draftTimer, toastTimer;
+// Storage failures must remain visible in Scanner and Historique as well.
+$('main').before($('storage-warning'));
+const state = { contacts: [], history:[], view:'scan', detailId:null, selected: new Set(), draft: null, temporary: false, stream: null, cameraToken: 0, ocr: null };
+const dateLabel=value=>Number.isFinite(value)&&Math.abs(value)<=8640000000000000?new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium',timeStyle:'short'}).format(value):'Date inconnue';
+const photoEditor=createPhotoEditor((image,edits)=>{
+  if(!state.draft)return;
+  state.draft.sourceImage ||= state.draft.image;
+  state.draft.image=image;state.draft.photoEdits=edits;
+  $('card-preview').src=image;queueDraft();
+  $('editor-notice').textContent='Photo recadrée et améliorée. Vous pouvez relancer l’analyse sur cette version avant d’enregistrer.';
+});
+let draftTimer, toastTimer, draftRevision=0;
 let draftQueue = Promise.resolve();
 const escapeHTML = value => String(value || '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 
@@ -42,7 +57,14 @@ function storageFailed() {
 
 function render() {
   const search = $('search-input').value.trim().toLocaleLowerCase('fr');
-  const visible = state.contacts.filter(contact => fields.some(field => (contact[field] || '').toLocaleLowerCase('fr').includes(search)));
+  const visible = state.contacts.filter(contact => fields.some(field => (contact[field] || '').toLocaleLowerCase('fr').includes(search)))
+    .filter(contact=>$('catalogue-filter').value!=='photos'||contact.image)
+    .sort($('catalogue-sort').value==='name'?(a,b)=>contactName(a).localeCompare(contactName(b),'fr'):(a,b)=>(b.createdAt||b.updatedAt)-(a.createdAt||a.updatedAt));
+  $('main').dataset.view=state.view;
+  document.querySelectorAll('[data-view]').forEach(button=>{if(button.tagName==='BUTTON')button.setAttribute('aria-pressed',String(button.dataset.view===state.view));});
+  $('history-section').hidden=state.view!=='history';
+  $('nav-count').textContent=state.contacts.length;
+  $('photo-count').textContent=`${state.contacts.filter(contact=>contact.image).length} avec photo`;
   $('contact-count').textContent = state.contacts.length;
   $('empty-state').hidden = state.contacts.length > 0;
   $('no-results').hidden = !state.contacts.length || !!visible.length;
@@ -56,13 +78,32 @@ function render() {
   $('export-button').disabled = !state.contacts.length;
   $('export-label').textContent = state.selected.size ? `Exporter la sélection (${state.selected.size})` : state.contacts.length ? `Exporter tous les contacts (${state.contacts.length})` : 'Exporter les contacts';
   $('resume-draft').hidden = !state.draft;
-  $('clear-button').hidden = !state.contacts.length && !state.draft;
+  $('clear-button').hidden = !state.contacts.length && !state.draft && !state.history.length;
+  $('backup-button').disabled=!state.contacts.length&&!state.history.length;
   $('contact-list').innerHTML = visible.map(contact => {
     const name = contactName(contact);
     const initials = name.split(/\s+/).slice(0, 2).map(part => Array.from(part)[0]).join('').toLocaleUpperCase('fr');
     const subtitle = [contact.title, contact.organization].filter(Boolean).join(' · ') || contact.emails.split('\n')[0] || contact.phones.split('\n')[0] || 'Contact à compléter';
-    return `<article class="contact-row" data-id="${escapeHTML(contact.id)}"><label class="checkbox-label"><span class="sr-only">Sélectionner ${escapeHTML(name)}</span><input type="checkbox" class="contact-checkbox" ${state.selected.has(contact.id) ? 'checked' : ''} /></label><div class="contact-avatar" aria-hidden="true">${escapeHTML(initials)}</div><button class="contact-info edit-contact" aria-label="Modifier ${escapeHTML(name)}"><strong>${escapeHTML(name)}</strong><small>${escapeHTML(subtitle)}</small></button><div class="row-actions"><button class="icon-button download-contact" aria-label="Exporter ${escapeHTML(name)}">${icon('download')}</button><button class="icon-button delete-contact" aria-label="Supprimer ${escapeHTML(name)}">${icon('trash')}</button></div></article>`;
+    const photo=safePhoto(contact.image)?`<img src="${contact.image}" alt="Carte de visite de ${escapeHTML(name)}" loading="lazy" />`:`<span class="card-placeholder">${escapeHTML(initials)}<small>Fiche sans photo</small></span>`;
+    return `<article class="contact-row" data-id="${escapeHTML(contact.id)}"><button class="card-photo view-card" aria-label="Voir la carte de ${escapeHTML(name)}">${photo}</button><div class="card-row-info"><label class="checkbox-label"><span class="sr-only">Sélectionner ${escapeHTML(name)}</span><input type="checkbox" class="contact-checkbox" ${state.selected.has(contact.id) ? 'checked' : ''} /></label><button class="contact-info edit-contact" aria-label="Modifier ${escapeHTML(name)}"><strong>${escapeHTML(name)}</strong><small>${escapeHTML(subtitle)}</small></button></div><div class="card-row-footer"><time>${escapeHTML(dateLabel(contact.createdAt||contact.updatedAt))}</time><div class="row-actions"><button class="icon-button download-contact" aria-label="Exporter ${escapeHTML(name)}">${icon('download')}</button><button class="icon-button delete-contact" aria-label="Supprimer ${escapeHTML(name)}">${icon('trash')}</button></div></div></article>`;
   }).join('');
+  const events=state.history.toSorted((a,b)=>b.timestamp-a.timestamp);
+  $('history-empty').hidden=events.length>0;
+  $('history-list').innerHTML=events.map(event=>`<article class="history-event"><span class="history-marker" aria-hidden="true">${icon(event.kind==='delete'?'trash':event.kind==='scan'?'camera':'history')}</span><div><span class="history-kind">${eventLabels[event.kind]||'Événement'}</span><strong>${escapeHTML(event.name)}</strong><time>${escapeHTML(dateLabel(event.timestamp))}</time></div>${state.contacts.some(contact=>contact.id===event.contactId)?`<button class="text-button history-open" data-id="${escapeHTML(event.contactId)}" aria-label="Ouvrir la fiche de ${escapeHTML(event.name)}">Voir la fiche →</button>`:'<span class="history-deleted">Fiche supprimée</span>'}</article>`).join('');
+}
+
+function setView(view){state.view=view;render();window.scrollTo({top:0,behavior:'instant'});}
+
+function openCard(contact){
+  state.detailId=contact.id;$('card-title').textContent=contactName(contact);
+  $('detail-photo').hidden=!safePhoto(contact.image);
+  if(safePhoto(contact.image))$('detail-photo').src=contact.image;else $('detail-photo').removeAttribute('src');
+  $('download-photo').hidden=!safePhoto(contact.image);
+  $('detail-date').textContent=`Ajoutée le ${dateLabel(contact.createdAt||contact.updatedAt)} · Modifiée le ${dateLabel(contact.updatedAt)}`;
+  const labels={firstName:'Prénom',lastName:'Nom',organization:'Organisation',title:'Fonction',phones:'Téléphones',emails:'E-mails',website:'Site web',address:'Adresse',notes:'Notes'};
+  $('detail-fields').innerHTML=fields.filter(field=>contact[field]).map(field=>`<div><dt>${labels[field]}</dt><dd>${escapeHTML(contact[field])}</dd></div>`).join('');
+  $('detail-history').innerHTML=state.history.filter(event=>event.contactId===contact.id).toSorted((a,b)=>b.timestamp-a.timestamp).map(event=>`<p>${eventLabels[event.kind]}<time>${escapeHTML(dateLabel(event.timestamp))}</time></p>`).join('')||'<p>Fiche créée avant l’activation de l’historique.</p>';
+  $('card-dialog').showModal();
 }
 
 function readForm() {
@@ -76,12 +117,13 @@ function writeForm(contact) {
 function queueDraft() {
   clearTimeout(draftTimer);
   if (!state.draft) return draftQueue;
+  const revision=++draftRevision;
   const snapshot = structuredClone(state.draft);
   $('draft-status').textContent = state.temporary ? 'Brouillon en mémoire uniquement' : 'Sauvegarde du brouillon…';
   draftQueue = draftQueue.then(async () => {
     try {
       await storage.saveDraft(snapshot);
-      if (!state.temporary) $('draft-status').textContent = 'Brouillon sauvegardé dans ce navigateur';
+      if (!state.temporary && revision===draftRevision) $('draft-status').textContent = 'Brouillon sauvegardé dans ce navigateur';
     } catch { storageFailed(); }
   });
   return draftQueue;
@@ -97,6 +139,7 @@ function setEditorBusy(busy) {
   $('save-contact').disabled = busy;
   $('rotate-button').disabled = busy;
   $('reanalyze-button').disabled = busy;
+  $('edit-photo').disabled=busy;
   $('ocr-progress').hidden = !busy;
 }
 
@@ -194,7 +237,7 @@ function cameraError(message) {
 }
 
 async function scanImage(image) {
-  openEditor({ ...blankContact(), image, rawText: '' });
+  openEditor({ ...blankContact(), image, sourceImage:image, rawText: '' });
   await analyzeImage();
 }
 
@@ -328,7 +371,9 @@ $('rotate-button').addEventListener('click', async event => {
   finally { $('rotate-button').disabled = false; }
 });
 $('reanalyze-button').addEventListener('click', event => { event.preventDefault(); analyzeImage(); });
+$('edit-photo').addEventListener('click',()=>{if(state.draft?.image&&!state.ocr){syncDraft();photoEditor.open(state.draft);}});
 form.addEventListener('input', event => {
+  draftRevision++;
   syncDraft();
   if (state.draft && fields.includes(event.target.name)) {
     state.draft.manuallyEditedFields = [...new Set([...(state.draft.manuallyEditedFields || []), event.target.name])];
@@ -341,7 +386,7 @@ form.addEventListener('submit', async event => {
   event.preventDefault();
   if (state.ocr || !state.draft) return;
   syncDraft();
-  if (!fields.some(field => state.draft[field])) { notify('Renseignez au moins une information pour ajouter ce contact.'); return; }
+  if (!fields.some(field => state.draft[field]) && !state.draft.image) { notify('Renseignez au moins une information ou ajoutez une photo pour enregistrer une fiche.'); return; }
   const emails = state.draft.emails.split('\n').map(email => email.trim()).filter(Boolean);
   if (emails.some(email => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) { notify('Vérifiez les e-mails : une adresse complète par ligne.'); form.elements.emails.focus(); return; }
   const editing = state.draft.editingId;
@@ -354,16 +399,32 @@ form.addEventListener('submit', async event => {
   clearTimeout(draftTimer);
   $('save-contact').disabled = true;
   await draftQueue;
-  const contact = { ...state.draft, id: editing || crypto.randomUUID(), updatedAt: Date.now() };
+  const previous=state.contacts.find(contact=>contact.id===editing);
+  const contact = { ...state.draft, id: editing || crypto.randomUUID(), createdAt:previous?.createdAt||previous?.updatedAt||Date.now(), updatedAt: Date.now() };
   delete contact.editingId;
-  try { await storage.saveContact(contact); } catch { storageFailed(); }
+  const activity=makeEvent(editing?(contact.image!==previous?.image?'photo':'edit'):(contact.image?'scan':'add'),contact);
+  try { await storage.saveContact(contact,activity); } catch { storageFailed(); }
   state.contacts = [contact, ...state.contacts.filter(item => item.id !== contact.id)];
+  state.history.unshift(activity);
   state.draft = null;
   editor.close();
-  render();
+  setView('catalogue');
   notify(editing ? 'Contact modifié.' : 'Contact ajouté au carnet.');
 });
 $('search-input').addEventListener('input', render);
+for(const id of ['catalogue-sort','catalogue-filter'])$(id).addEventListener('change',render);
+document.querySelectorAll('.app-nav button').forEach(button=>button.addEventListener('click',()=>setView(button.dataset.view)));
+$('history-list').addEventListener('click',event=>{const button=event.target.closest('.history-open');if(button){const contact=state.contacts.find(contact=>contact.id===button.dataset.id);if(contact)openCard(contact);}});
+$('close-card').addEventListener('click',()=>$('card-dialog').close());
+$('detail-edit').addEventListener('click',()=>{
+  const contact=state.contacts.find(contact=>contact.id===state.detailId);if(!contact||!replaceDraftAllowed())return;
+  $('card-dialog').close();openEditor({...contact,editingId:contact.id});
+});
+$('detail-export').addEventListener('click',()=>{const contact=state.contacts.find(contact=>contact.id===state.detailId);if(contact)downloadContacts([contact]);});
+$('download-photo').addEventListener('click',()=>{
+  const contact=state.contacts.find(contact=>contact.id===state.detailId);if(!safePhoto(contact?.image))return;
+  const a=document.createElement('a');a.href=contact.image;a.download=`minibcr-carte-${contact.id}.jpg`;document.body.append(a);a.click();a.remove();
+});
 $('select-all').addEventListener('change', event => {
   for (const row of $('contact-list').querySelectorAll('.contact-row')) {
     if (event.target.checked) state.selected.add(row.dataset.id); else state.selected.delete(row.dataset.id);
@@ -383,6 +444,7 @@ $('contact-list').addEventListener('click', async event => {
   if (!row) return;
   const contact = state.contacts.find(item => item.id === row.dataset.id);
   if (!contact) return;
+  if(event.target.closest('.view-card'))openCard(contact);
   if (event.target.closest('.edit-contact')) {
     if (state.draft?.editingId === contact.id) openEditor(state.draft);
     else if (replaceDraftAllowed()) openEditor({ ...contact, editingId: contact.id });
@@ -390,9 +452,11 @@ $('contact-list').addEventListener('click', async event => {
   if (event.target.closest('.download-contact')) downloadContacts([contact]);
   if (event.target.closest('.delete-contact')) {
     if (!window.confirm(`Supprimer ${contactName(contact)} de ce navigateur ?`)) return;
-    try { await storage.deleteContact(contact.id); }
+    const activity=makeEvent('delete',contact);
+    try { await storage.deleteContact(contact.id,activity); }
     catch { storageFailed(); notify('La suppression locale a échoué. Le contact est conservé ; réessayez.'); return; }
     state.contacts = state.contacts.filter(item => item.id !== contact.id);
+    state.history.unshift(activity);
     state.selected.delete(contact.id);
     if (state.draft?.editingId === contact.id) {
       await draftQueue;
@@ -404,13 +468,33 @@ $('contact-list').addEventListener('click', async event => {
 });
 $('export-button').addEventListener('click', () => downloadContacts(state.selected.size ? state.contacts.filter(contact => state.selected.has(contact.id)) : state.contacts));
 $('clear-button').addEventListener('click', async () => {
-  if (!window.confirm('Effacer tous les contacts et le brouillon enregistrés dans ce navigateur ? Pensez à les exporter avant de continuer.')) return;
+  if (!window.confirm('Effacer toutes les fiches, leurs photos, l’historique et le brouillon de ce navigateur ? Pensez à sauvegarder le catalogue avant de continuer.')) return;
   clearTimeout(draftTimer);
   await draftQueue;
   try { await storage.clearData(); }
   catch { storageFailed(); notify('L’effacement local a échoué. Réessayez ou effacez les données du site dans votre navigateur.'); return; }
-  state.contacts = []; state.selected.clear(); state.draft = null;
+  state.contacts = []; state.history=[]; state.selected.clear(); state.draft = null;
   render(); notify('Contacts et brouillon effacés de ce navigateur.');
+});
+$('backup-button').addEventListener('click',()=>{
+  const backup={application:'MiniBCR',version:1,exportedAt:new Date().toISOString(),contacts:state.contacts,history:state.history};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(backup)],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download=`minibcr-catalogue-${new Date().toISOString().slice(0,10)}.json`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  notify('Catalogue sauvegardé avec les photos et l’historique. Conservez ce fichier dans un endroit sûr.');
+});
+$('restore-button').addEventListener('click',()=>$('backup-input').click());
+$('backup-input').addEventListener('change',async event=>{
+  const file=event.target.files[0];event.target.value='';if(!file)return;
+  try{
+    if(file.size>120000000)throw new Error('La sauvegarde dépasse 120 Mo.');
+    const backup=parseCatalogueBackup(await file.text());
+    const contacts=backup.contacts.filter(contact=>!state.contacts.some(existing=>existing.id===contact.id));
+    const events=backup.history.filter(event=>!state.history.some(existing=>existing.id===event.id));
+    const restored=contacts.map(contact=>makeEvent('restore',contact));
+    await storage.restoreCatalogue(contacts,[...events,...restored]);
+    state.contacts.push(...contacts);state.history.push(...events,...restored);setView('catalogue');
+    notify(`${contacts.length} fiche(s) restaurée(s). Les fiches déjà présentes ont été conservées.`);
+  }catch(error){notify(`Restauration impossible : ${error.message}`);}
 });
 $('privacy-button').addEventListener('click', () => $('privacy-dialog').showModal());
 $('close-privacy').addEventListener('click', () => $('privacy-dialog').close());
@@ -425,8 +509,14 @@ async function initialize() {
   try {
     state.contacts = (await storage.getContacts()).sort((a, b) => b.updatedAt - a.updatedAt);
     state.draft = await storage.getDraft() || null;
+    state.history=await storage.getHistory();
+    state.view=state.contacts.length?'catalogue':'scan';
   } catch { storageFailed(); }
   controls.forEach(id => { $(id).disabled = false; });
   render();
 }
 initialize();
+initializePWA({beforeUpdate:async()=>{
+  if(state.ocr)throw new Error('Analyse en cours.');
+  if(editor.open){syncDraft();await queueDraft();if(state.temporary)throw new Error('Sauvegarde indisponible.');}
+}});

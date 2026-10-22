@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFile, mkdir } from 'node:fs/promises';
 
 async function addContact(page, firstName = 'Camille', email = 'camille@exemple.fr') {
+  await page.getByRole('button',{name:'Scanner',exact:true}).click();
   await page.getByRole('button', { name: 'Saisir un contact' }).click();
   await page.getByLabel('Prénom', { exact: true }).fill(firstName);
   await page.getByLabel('Nom', { exact: true }).fill('Martin');
@@ -33,6 +34,7 @@ test('desktop and mobile empty states, keyboard access and no overflow', async (
   await expect(page.getByRole('button', { name: 'Exporter les contacts' })).toBeDisabled();
   for (const [width, height] of [[1440, 900], [390, 844]]) {
     await page.setViewportSize({ width, height });
+    await page.evaluate(()=>window.scrollTo(0,0));
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: `docs/evidence/empty-${width}.png` });
   }
@@ -85,7 +87,9 @@ test('draft and contact survive reload, edits, selection export, filtering and d
   await expect(page.locator('.contact-row')).toHaveCount(1);
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', { name: 'Effacer mes données locales' }).click();
+  await expect(page.locator('#empty-state')).toBeVisible();
   await page.reload();
+  await page.getByRole('button',{name:/Catalogue/}).click();
   await expect(page.locator('#empty-state')).toBeVisible();
   await expect(page.locator('#resume-draft')).not.toBeVisible();
 });

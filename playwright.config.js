@@ -9,6 +9,7 @@ export default defineConfig({
     channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
     headless: true,
     screenshot: 'only-on-failure',
+    serviceWorkers: 'block',
   },
   webServer: {
     command: 'npm run build && node scripts/serve-test.mjs',

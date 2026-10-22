@@ -25,7 +25,52 @@ sans API de traitement ni clé secrète.
   sur e-mail ou téléphone identique.
 - Export vCard 3.0 `.vcf` d'un contact, d'une sélection ou du carnet complet.
 - Sauvegarde automatique du carnet et d'un brouillon dans IndexedDB.
-- Effacement des contacts et du brouillon depuis l'interface.
+- Interface mobile avec navigation Scanner, Catalogue et Historique.
+- Catalogue visuel des cartes avec recherche, tri et filtre des fiches avec photo.
+- Recadrage à quatre coins, correction de perspective et rotation de la photo.
+  Détection de bords proposée lorsque le fond est suffisamment distinct : toujours
+  vérifier et ajuster les coins à la main. Proportions libres, carte standard ou carrée.
+- Retouche douce de la lumière en couleur pour conserver le design, avec aperçu
+  et possibilité de désactiver la retouche. L'original reste disponible pour un autre cadrage.
+- Fiche détaillée avec photo téléchargeable, coordonnées et historique des changements.
+- Historique local des scans enregistrés, ajouts, modifications, retouches, suppressions
+  et restaurations. Une ancienne fiche sans historique n'a pas d'événements inventés.
+- Sauvegarde et restauration `.json` du catalogue complet, avec photos et historique.
+  À la restauration, les identifiants déjà présents sont conservés et les nouvelles
+  fiches sont ajoutées. Une sauvegarde incompatible ou invalide est refusée avant écriture.
+- Effacement des contacts, photos, historique et brouillon depuis l'interface.
+- PWA installable avec icône sur l'écran d'accueil et ouverture dans une fenêtre dédiée.
+- Application et catalogue accessibles hors connexion après une première ouverture
+  réussie de la version publiée. Téléchargement explicite du moteur pour scanner
+  également sans réseau. La taille réelle du pack est affichée avant téléchargement.
+- Mise à jour proposée à l'utilisateur, sans rechargement automatique de sa fiche.
+
+## Installer sur téléphone
+
+Publier la version construite sur une URL **HTTPS**, par exemple GitHub Pages.
+Le bouton **Installer l'app** explique le parcours adapté au navigateur :
+
+- Android / Chrome : utiliser le bouton d'installation si proposé, ou le menu
+  du navigateur « Installer l'application » / « Ajouter à l'écran d'accueil ».
+- iPhone / Safari : Partager → Sur l'écran d'accueil, puis activer « Ouvrir comme
+  app web » si proposé et confirmer Ajouter.
+
+L'icône ouvre MiniBCR en mode `standalone`. Le navigateur décide quand proposer
+son dialogue natif : l'app ne peut pas forcer l'installation. Les instructions
+manuelles restent disponibles quand ce dialogue n'existe pas.
+
+Après la première ouverture en ligne, l'interface est mise en cache. Depuis
+**Installer l'app**, cliquer **Préparer le scan hors connexion** pour télécharger
+les fichiers OCR. Attendre le message **Scan hors connexion prêt** avant de couper
+le réseau. Le catalogue reste consultable sans ce téléchargement supplémentaire.
+
+L'installation n'est pas une sauvegarde. Selon le téléphone et le navigateur,
+l'app installée peut avoir un stockage distinct du site ouvert dans un onglet :
+exporter le catalogue complet depuis le site, puis le restaurer dans l'app si nécessaire.
+Les installations natives sur appareils physiques restent à vérifier.
+
+Sources : [installation PWA](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable),
+[ajout à l'écran d'accueil iPhone](https://support.apple.com/guide/iphone/bookmark-a-website-iph42ab2f3a7/ios).
 
 ## Développement
 
@@ -39,7 +84,9 @@ npm run dev
 Le script prépare les fichiers OCR depuis les dépendances npm dans `public/ocr/`.
 Les moteurs, workers, fichiers de langue et notices sont servis par le site
 lui-même. Aucun CDN, outil d'analyse ou police distante n'est utilisé à l'exécution.
-La première analyse doit télécharger plusieurs Mo ; ce n'est pas une PWA hors ligne.
+La première analyse doit télécharger plusieurs Mo si le pack OCR n'a pas déjà été
+préparé. Le service worker est activé uniquement dans la version construite ; le
+serveur de développement Vite garde son fonctionnement normal sans cache PWA.
 La caméra nécessite HTTPS ou `localhost`. Le micro n'est jamais demandé.
 
 ```sh
@@ -47,6 +94,16 @@ npm test
 npm run build
 npm run preview
 ```
+
+Le script de construction génère le service worker et une liste exacte des fichiers
+statiques. Le cache est limité à cette liste : aucun contact ni photo n'est mis dans
+le cache réseau, les données personnelles restent dans IndexedDB. Le pack OCR est
+versionné par le contenu de ses fichiers. La mise à jour du site attend une action
+sur « Mettre à jour » ; le catalogue et le brouillon ne sont pas effacés.
+
+Pour tester la PWA, utiliser `npm run build && npm run preview`. `localhost` permet
+les essais sur l'ordinateur. L'adresse `127.0.0.1` de l'ordinateur ne permet pas à
+un téléphone d'y accéder : un déploiement HTTPS est nécessaire pour les essais mobiles.
 
 Le dossier `dist/` est autonome et peut être servi par tout hébergeur statique.
 Les chemins relatifs fonctionnent également sous `/MiniBCR/`.
@@ -68,6 +125,19 @@ L'hébergeur reçoit les requêtes habituelles pour télécharger le site et le 
 Le carnet, les photos associées et le brouillon sont conservés uniquement dans
 IndexedDB, pour cette origine, ce navigateur et cet appareil. Les saisies du
 brouillon sont sauvegardées après 250 ms et à la fermeture de la fiche.
+
+Le stockage évolue automatiquement de la version 1 à la version 2 en conservant
+les fiches et photos existantes. Chaque fiche retouchée conserve `sourceImage`
+(original), `image` (version choisie) et `photoEdits` (coins, rotation, proportions,
+réglage de lumière). Les événements d'historique sont enregistrés dans la même
+transaction que l'ajout, la modification ou la suppression de leur fiche.
+
+Cette version est une application web adaptée aux téléphones. La sauvegarde
+`.json` est destinée à conserver les images et à transférer le catalogue entre
+navigateurs. L'import est limité à 120 Mo, 5 000 fiches et 50 000 événements.
+Le `.vcf` conserve son rôle d'import dans Contacts et ne contient pas les photos.
+Les sauvegardes complètes contiennent des données personnelles : les conserver
+dans un emplacement privé. Aucun chiffrement supplémentaire n'est appliqué.
 
 Ce stockage n'est ni chiffré par l'application ni une sauvegarde garantie : effacement
 des données du site, navigation privée, quotas ou éviction par le navigateur peuvent

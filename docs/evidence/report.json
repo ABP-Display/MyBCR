@@ -1,29 +1,94 @@
 {
-  "contract": "../design.md — outil de scan mobile en français, correction humaine, carnet local et export vCard. Vérifications sur contacts et carte fictifs ; aucun téléphone physique testé.",
-  "targetViewports": ["390x844", "1440x900", "844x390"],
+  "contract": "../design.md — version web mobile avec catalogue visuel, historique, recadrage et sauvegarde complète locale. Photos de test synthétiques uniquement. PWA installable, aide par plateforme et moteur hors connexion à téléchargement explicite.",
+  "targetViewports": [
+    "390x844",
+    "1440x900",
+    "844x390"
+  ],
   "accessibility": {
     "status": "pass",
     "evidence": "Audit initial Lighthouse mobile : accessibilité 100/100 (lighthouse.json). Navigation au clavier vers le lien d'évitement, focus visible, labels des champs, ouverture et fermeture du dialogue par Échap vérifiés dans Playwright. Nouveau dialogue caméra nommé, vidéo étiquetée et fermeture par Échap vérifiée. Actions principales d'au moins 44 px. Les animations et transitions sont désactivées par la règle prefers-reduced-motion. Cela ne constitue pas un audit d'accessibilité exhaustif."
   },
   "responsive": {
     "status": "pass",
-    "evidence": "Captures relues à 390x844 et 1440x900 : scan lisible, actions disponibles, liste avec une fonction longue sans débordement. Caméra aussi vérifiée à 844x390 : vidéo complète avec quatre coins colorés visibles, boutons dans la fenêtre. Test scrollWidth <= innerWidth dans les trois formats caméra et sur le dialogue mobile. Les champs longs de la fiche utilisent toute la largeur mobile."
+    "evidence": "Captures relues à 390x844 et 1440x900 : scan lisible, actions disponibles, liste avec une fonction longue sans débordement. Caméra aussi vérifiée à 844x390 : vidéo complète avec quatre coins colorés visibles, boutons dans la fenêtre. Test scrollWidth <= innerWidth dans les trois formats caméra et sur le dialogue mobile. Les champs longs de la fiche utilisent toute la largeur mobile. Catalogue et retouche à quatre coins relus à 390x844 ; onglets mobiles fixes et images entières sans débordement."
   },
   "contentStates": {
-    "loading": { "status": "pass", "evidence": "OCR réel sur une carte fictive : progression visible puis disparition du chargement ; annulation testée après capture simulée. Capture ocr-loading.png." },
-    "empty": { "status": "pass", "evidence": "Carnet vide avec invitation à scanner et export désactivé, sur ordinateur et mobile. Captures empty-1440.png et empty-390.png." },
-    "error": { "status": "pass", "evidence": "Tests d'IndexedDB indisponible avec export possible, d'échec d'effacement avec contact conservé et de téléchargement OCR interrompu avec saisie manuelle disponible. Capture storage-error.png." },
-    "partial": { "status": "pass", "evidence": "Une fiche comportant seulement un prénom peut être reprise après rechargement ; champs manquants laissés modifiables. Aucun contact entièrement vide accepté. Photo et texte reconnu conservés pour vérification ; capture editor-mobile.png." },
-    "success": { "status": "pass", "evidence": "Ajout, modification et persistance après rechargement testés. Sélection d'un seul contact exportée dans un vrai fichier contenant uniquement sa vCard. Captures contacts-1440.png et contacts-390.png." },
-    "permission": { "status": "pass", "evidence": "Demande caméra uniquement au clic. Refus simulé : message explicite et import photo disponible (camera-denied.png). Caméra simulée : pistes arrêtées après fermeture et capture. L'autorisation matérielle et le cadrage sur téléphone restent à vérifier."
+    "loading": {
+      "status": "pass",
+      "evidence": "OCR réel sur une carte fictive : progression visible puis disparition du chargement ; annulation testée après capture simulée. Capture ocr-loading.png."
+    },
+    "empty": {
+      "status": "pass",
+      "evidence": "Carnet vide avec invitation à scanner et export désactivé, sur ordinateur et mobile. Captures empty-1440.png et empty-390.png."
+    },
+    "error": {
+      "status": "pass",
+      "evidence": "Tests d'IndexedDB indisponible avec export possible, d'échec d'effacement avec contact conservé et de téléchargement OCR interrompu avec saisie manuelle disponible. Capture storage-error.png."
+    },
+    "partial": {
+      "status": "pass",
+      "evidence": "Une fiche comportant seulement un prénom peut être reprise après rechargement ; champs manquants laissés modifiables. Aucun contact entièrement vide accepté. Photo et texte reconnu conservés pour vérification ; capture editor-mobile.png."
+    },
+    "success": {
+      "status": "pass",
+      "evidence": "Ajout, modification et persistance après rechargement testés. Sélection d'un seul contact exportée dans un vrai fichier contenant uniquement sa vCard. Captures contacts-1440.png et contacts-390.png. Migration IndexedDB v1 vers v2, maintien des photos originales et retouchées, historique et restauration complète JSON testés. Avec service worker activé : rechargement hors connexion, OCR à froid, export et mise à jour différée avec brouillon conservé vérifiés."
+    },
+    "permission": {
+      "status": "pass",
+      "evidence": "Demande caméra uniquement au clic. Refus simulé : message explicite et import photo disponible (camera-denied.png). Caméra simulée : pistes arrêtées après fermeture et capture. L'autorisation matérielle et le cadrage sur téléphone restent à vérifier."
     }
   },
   "renderedEvidence": [
-    { "viewport": "390x844", "artifact": "empty-390.png", "observation": "Capture mobile : titre, carte illustrative, scan, import et saisie manuelle lisibles. Le carnet suit dans le défilement vertical." },
-    { "viewport": "1440x900", "artifact": "empty-1440.png", "observation": "Capture ordinateur : scan et carnet en deux colonnes ; état vide et export désactivé." },
-    { "viewport": "390x844", "artifact": "editor-mobile.png", "observation": "Dialogue avec photo de la carte fictive, champs corrigibles et validation accessible dans le pied de dialogue." },
-    { "viewport": "1440x900", "artifact": "contacts-1440.png", "observation": "Deux contacts fictifs, fonction longue, sélection d'une fiche et export ciblé." },
-    { "viewport": "390x844", "artifact": "camera-390.png", "observation": "Caméra en portrait : image entière, repères aux quatre coins et boutons visibles, sans déformation du carnet sous le dialogue." },
-    { "viewport": "844x390", "artifact": "camera-844.png", "observation": "Caméra en paysage : flux non découpé, hauteur adaptée à la fenêtre et commandes disponibles." }
+    {
+      "viewport": "390x844",
+      "artifact": "empty-390.png",
+      "observation": "Capture mobile : titre, carte illustrative, scan, import et saisie manuelle lisibles. Le carnet suit dans le défilement vertical."
+    },
+    {
+      "viewport": "1440x900",
+      "artifact": "empty-1440.png",
+      "observation": "Capture ordinateur : scan et carnet en deux colonnes ; état vide et export désactivé."
+    },
+    {
+      "viewport": "390x844",
+      "artifact": "editor-mobile.png",
+      "observation": "Dialogue avec photo de la carte fictive, champs corrigibles et validation accessible dans le pied de dialogue."
+    },
+    {
+      "viewport": "1440x900",
+      "artifact": "contacts-1440.png",
+      "observation": "Deux contacts fictifs, fonction longue, sélection d'une fiche et export ciblé."
+    },
+    {
+      "viewport": "390x844",
+      "artifact": "camera-390.png",
+      "observation": "Caméra en portrait : image entière, repères aux quatre coins et boutons visibles, sans déformation du carnet sous le dialogue."
+    },
+    {
+      "viewport": "844x390",
+      "artifact": "camera-844.png",
+      "observation": "Caméra en paysage : flux non découpé, hauteur adaptée à la fenêtre et commandes disponibles."
+    },
+    {
+      "viewport": "390x844",
+      "artifact": "mobile-catalogue.png",
+      "observation": "Catalogue avec photo couleur recadrée, coordonnées et navigation mobile fixe."
+    },
+    {
+      "viewport": "390x844",
+      "artifact": "mobile-photo-editor.png",
+      "observation": "Recadrage à quatre coins tactiles, aperçu couleur et correction de perspective."
+    },
+    {
+      "viewport": "390x844",
+      "artifact": "mobile-history.png",
+      "observation": "Chronologie locale des actions avec ouverture de la fiche correspondante."
+    },
+    {
+      "viewport": "390x844",
+      "artifact": "mobile-installation.png",
+      "observation": "Aide à l’installation, état de disponibilité du catalogue hors connexion et téléchargement explicite du moteur ; dialogue natif simulé dans le test, pas d’installation système réelle."
+    }
   ]
 }
